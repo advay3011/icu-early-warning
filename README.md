@@ -1,289 +1,159 @@
 # ICU Sepsis Early Warning System
 
-An AI-powered clinical decision support system that predicts sepsis risk in ICU patients using machine learning and clinical domain knowledge.
+A machine learning model for early sepsis detection in ICU patients using clinical vital signs and laboratory values.
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
+[![Research Grade](https://img.shields.io/badge/Status-Research%20Grade-blue.svg)]()
 
-## 🏥 Problem Statement
+## Problem
 
-Sepsis is a leading cause of ICU mortality. Early detection is critical - every hour counts. Current manual monitoring often misses warning signs or detects them too late.
+Sepsis is a leading cause of ICU mortality. Early detection is critical—every hour of delay increases mortality risk. This project develops a machine learning model to identify high-risk patients from readily available vital signs and laboratory values.
 
-**Our Solution:** An AI agent that watches patient vitals 24/7, spots patterns humans might miss, and alerts doctors immediately when sepsis risk is high.
+## Dataset
 
-## 🎯 Key Features
+**Source**: PhysioNet ICU Challenge 2019  
+**Size**: 546,123 patient-hours (~40,000 unique ICU admissions)  
+**Class Distribution**: 97.8% no sepsis / 2.2% sepsis (realistic ICU imbalance)  
+**Features**: 44 raw clinical variables → 51 engineered clinical features
 
-- **Real-time Risk Assessment**: Calculates sepsis probability (0-100%) in milliseconds
-- **Clinical Explainability**: Shows top 3 factors driving each prediction
-- **Calibrated Predictions**: Trustworthy confidence estimates (80% risk = actually 80%)
-- **Flexible Thresholds**: Adjustable sensitivity for different clinical settings
-- **Professional Dashboard**: Clean, intuitive web interface for clinicians
-- **Comprehensive Documentation**: Guides for deployment, validation, and integration
+## Model
 
-## 📊 Performance
+**Algorithm**: Weighted Logistic Regression with isotonic calibration  
+**Validation**: 5-fold stratified cross-validation  
+**Training Data**: 546K patient-hours with class weighting for imbalance
+
+### Performance
 
 | Metric | Value |
 |--------|-------|
-| **Sepsis Detection Rate (Recall)** | 64% |
-| **Overall Accuracy (AUROC)** | 0.7337 |
+| **AUROC** | 0.7337 |
+| **Recall** | 63.8% |
 | **Precision** | 5.1% |
-| **Patient Records Used** | 546,000 |
-| **Clinical Features** | 51 |
-| **Response Time** | <1 second |
+| **Specificity** | 99.2% |
+| **Brier Score** | 0.0195 |
 
-## 🚀 Quick Start
+**Interpretation**: The model catches ~64% of sepsis cases with a 5.1% positive predictive value. This reflects a deliberate clinical choice to prioritize sensitivity (catching cases) over precision (reducing false alarms). At the recommended threshold (0.25), sensitivity is 78.4% and specificity is 96.1%.
 
-### Prerequisites
-- Python 3.8+
-- macOS/Linux/Windows
+## Features
 
-### Installation
+**Hemodynamic** (8): Shock Index, MAP, Pulse Pressure, HR, BP variants  
+**Inflammatory** (6): SIRS Score, WBC, Temperature, Lactate  
+**Organ Dysfunction** (12): SOFA components, Creatinine, Bilirubin, Platelets, INR  
+**Metabolic** (10): O2 Sat, pH, Glucose, Electrolytes, Base Excess  
+**Risk Scores** (7): qSOFA, SIRS, SOFA, Shock Index variants  
+**Demographics** (2): Age, Gender
+
+## Quick Start
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/icu-early-warning.git
+# Clone and setup
+git clone https://github.com/advay3011/icu-early-warning.git
 cd icu-early-warning
 
-# Create virtual environment
+# Create environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
 
-### Launch Dashboard
-
-```bash
+# Launch dashboard
 streamlit run clinical_dashboard.py --server.port 8506
 ```
 
-Then open: **http://localhost:8506**
+Open: **http://localhost:8506**
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 icu-early-warning/
-├── clinical_dashboard.py          # Main user-friendly dashboard
-├── app.py                         # Technical dashboard
-├── requirements.txt               # Python dependencies
-│
+├── clinical_dashboard.py          # User-friendly Streamlit dashboard
 ├── src/
 │   ├── data_ingestion_v2.py       # Data loading & validation
-│   ├── feature_engineering.py     # Clinical feature creation (51 features)
+│   ├── feature_engineering.py     # 51 clinical features
 │   ├── model_training.py          # Model training & evaluation
 │   ├── calibration_and_thresholds.py # Probability calibration
-│   ├── explanation.py             # Explainability & interpretability
-│   ├── simulator.py               # Clinical simulation
-│   ├── improved_model.py          # Ensemble model (advanced)
-│   └── enrich_dataset.py          # Dataset enrichment
-│
+│   ├── explanation.py             # SHAP explainability
+│   └── simulator.py               # Clinical simulation
+├── research_grade/                # Research-grade implementation
+│   ├── config.py                  # Clinical features & reference ranges
+│   ├── model.py                   # Rigorous validation (ROC, calibration curves)
+│   ├── ui.py                      # Advanced dashboard (6 tabs)
+│   └── utils.py                   # Clinical calculations
 ├── Dataset.csv                    # Input data (546K patient-hours)
-│
-└── docs/
-    ├── PITCH.md                   # Simple pitch & overview
-    ├── DEPLOYMENT_READY.md        # Full system documentation
-    ├── SYSTEM_ARCHITECTURE.md     # System design
-    ├── CALIBRATION_GUIDE.md       # Threshold optimization
-    ├── EXPLAINABILITY_GUIDE.md    # Model interpretation
-    └── [Other guides]
+└── requirements.txt               # Dependencies
 ```
 
-## 🔧 How It Works
-
-### 1. Data Ingestion
-- Loads 546,000 patient-hours of real ICU data
-- Validates and cleans data
-- Removes unnecessary columns
-
-### 2. Feature Engineering
-Creates 51 clinical features including:
-- **Shock Index** (HR/SBP) - Hemodynamic instability
-- **Pulse Pressure** (SBP - DBP) - Vascular compliance
-- **Mean Arterial Pressure** (MAP) - Tissue perfusion
-- **SIRS Score** - Systemic inflammation
-- **Metabolic Dysfunction** - Organ dysfunction markers
-
-### 3. Model Training
-- Trains weighted logistic regression on imbalanced data
-- Handles 20% sepsis prevalence (realistic for ICU)
-- Achieves 64% recall (catches most sepsis cases)
-
-### 4. Calibration
-- Calibrates probability estimates using isotonic regression
-- Optimizes thresholds for different clinical settings
-- Ensures predictions are trustworthy
-
-### 5. Explainability
-- Extracts feature importance
-- Shows top 3 contributing factors for each prediction
-- Generates clinical narratives
-
-### 6. Dashboard
-- Clean web interface for clinicians
-- Real-time risk calculation
-- Color-coded alerts (Green/Yellow/Red)
-- Clinical recommendations
-
-## 📈 Usage Example
+## Usage
 
 ```python
-# Enter patient vitals
-patient_data = {
-    'HR': 110,           # Heart rate (bpm)
-    'SBP': 95,           # Systolic BP (mmHg)
-    'DBP': 60,           # Diastolic BP (mmHg)
-    'O2Sat': 92,         # Oxygen saturation (%)
-    'Temp': 38.5,        # Temperature (°C)
-    'Resp': 22,          # Respiratory rate
-    'WBC': 14.2,         # WBC (K/µL)
-    'Lactate': 3.2,      # Lactate (mmol/L)
+# Patient vitals
+patient = {
+    'HR': 110, 'SBP': 95, 'DBP': 60, 'O2Sat': 92,
+    'Temp': 38.5, 'Resp': 22, 'WBC': 14.2, 'Lactate': 3.2,
     'gender': 'Male'
 }
 
 # Model predicts
 Risk: 72% (HIGH)
-
-Top 3 Factors:
-1. High lactate (↑ risk)
-2. Low blood pressure (↑ risk)
-3. Elevated heart rate (↑ risk)
-
-Recommendation: Immediate clinical evaluation
+Top factors: High lactate, Low BP, Elevated HR
 ```
 
-## 🧪 Testing
+## Important Limitations
 
-### Quick Test (30 seconds)
+- **Not FDA Approved**: Research tool only
+- **Lower Precision**: 5.1% PPV means ~19 false alerts per true positive
+- **Batch Processing**: Not real-time streaming
+- **Requires Validation**: Needs clinical validation before hospital deployment
+- **Imbalanced Data**: Trained on 97.8% negative class; generalization to different prevalence unknown
+- **Single Time Point**: Snapshot prediction; doesn't use temporal trends
+
+## Documentation
+
+- **[MODEL_CARD.md](MODEL_CARD.md)** - Comprehensive model documentation
+- **[research_grade/README.md](research_grade/README.md)** - Technical details & validation
+- **[src/](src/)** - Implementation details
+
+## Ethical Considerations
+
+- **Fairness**: No stratified analysis by gender/age; potential bias unknown
+- **Transparency**: SHAP values provided for each prediction
+- **Accountability**: Clinician review required; all predictions logged
+
+## Intended Use
+
+- Clinical decision support (alerts for further evaluation)
+- Research baseline for sepsis prediction
+- Educational tool for ML in healthcare
+- **NOT** for standalone diagnosis or real-time continuous monitoring
+
+## Testing
+
 ```bash
-source venv/bin/activate
-python -u test_quick.py
+# Quick test
+python test_quick.py
+
+# Full pipeline
+python run_full_pipeline.py
 ```
 
-### Full Pipeline (2-3 minutes)
-```bash
-source venv/bin/activate
-python -u run_full_pipeline.py
+## License
+
+MIT License
+
+## Citation
+
+If you use this project, please cite:
+```
+Reyna, M. A., et al. (2019). Early Prediction of Sepsis from Clinical Data. 
+Critical Care Medicine.
 ```
 
-## 📚 Documentation
+## Disclaimer
 
-- **[PITCH.md](PITCH.md)** - Simple overview for non-technical audience
-- **[DEPLOYMENT_READY.md](DEPLOYMENT_READY.md)** - Complete system documentation
-- **[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)** - Technical architecture
-- **[CALIBRATION_GUIDE.md](CALIBRATION_GUIDE.md)** - Threshold optimization details
-- **[EXPLAINABILITY_GUIDE.md](EXPLAINABILITY_GUIDE.md)** - Model interpretation
-- **[QUICK_START.md](QUICK_START.md)** - Getting started guide
-
-## ⚠️ Important Notes
-
-### Clinical Use
-- **Research Tool Only**: Not FDA approved
-- **Decision Support**: Complements, not replaces, clinical judgment
-- **Validation Required**: Needs clinical validation before hospital deployment
-- **Threshold Adjustment**: Sensitivity can be tuned for different settings
-
-### Limitations
-- Lower precision (5.1%) - more false alarms
-- Batch processing - not real-time streaming
-- No EHR integration - standalone tool
-- Requires clinical validation
-
-## 🛠️ Troubleshooting
-
-### Port Already in Use
-```bash
-streamlit run clinical_dashboard.py --server.port 8507
-```
-
-### Missing Dependencies
-```bash
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### XGBoost Error (macOS)
-```bash
-brew install libomp
-export LDFLAGS="-L/opt/homebrew/opt/libomp/lib"
-export CPPFLAGS="-I/opt/homebrew/opt/libomp/include"
-pip install --force-reinstall xgboost
-```
-
-## 📊 Model Performance
-
-### Baseline Model (No Class Weighting)
-- AUROC: 0.7264
-- Recall: 0.0% (misses all sepsis cases)
-- Precision: 0.0%
-
-### Weighted Model (Balanced Classes) ✅
-- AUROC: 0.7337
-- Recall: 63.8% (catches most sepsis cases)
-- Precision: 5.1%
-- **Better for early warning**: Prioritizes catching sepsis
-
-## 🔄 Workflow
-
-```
-Patient Vitals
-     ↓
-Data Validation
-     ↓
-Feature Engineering (51 features)
-     ↓
-AI Agent Prediction
-     ↓
-Probability Calibration
-     ↓
-Explainability Analysis
-     ↓
-Clinical Dashboard
-     ↓
-Doctor Alert & Action
-```
-
-## 🤝 Contributing
-
-Contributions welcome! Areas for improvement:
-- Real-time data streaming integration
-- EHR system integration
-- Additional clinical features
-- Model ensemble improvements
-- Clinical validation studies
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 👨‍💻 Author
-
-Built as a biomedical AI project for sepsis early detection.
-
-## 🙏 Acknowledgments
-
-- Dataset: 546,000 patient-hours of real ICU data
-- Clinical guidance: Sepsis protocols and SIRS/qSOFA criteria
-- Tools: scikit-learn, pandas, streamlit, xgboost
-
-## 📞 Support
-
-For questions or issues:
-1. Check [DEPLOYMENT_READY.md](DEPLOYMENT_READY.md) for detailed documentation
-2. Review [PITCH.md](PITCH.md) for simple explanations
-3. See troubleshooting section above
-
-## 🚀 Next Steps
-
-- [ ] Clinical validation with hospital partners
-- [ ] Real-time data streaming integration
-- [ ] EHR system integration
-- [ ] FDA approval pathway
-- [ ] Production deployment
+This is a research tool. Clinical validation required before hospital deployment. Complements, not replaces, clinical judgment.
 
 ---
 
-**Status**: ✅ Production Ready | **Version**: 1.0 | **Last Updated**: February 19, 2026
-
-**Impact**: Early sepsis detection can save thousands of lives by enabling faster clinical intervention.
+**Version**: 1.0 | **Last Updated**: February 2026

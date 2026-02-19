@@ -83,13 +83,13 @@ def train_models(df):
     return trainer
 
 @st.cache_resource
-def calibrate_model(trainer):
+def calibrate_model(_trainer):
     """Calibrate model and optimize thresholds."""
-    y_pred_proba = trainer.model_weighted.predict_proba(trainer.X_test)[:, 1]
+    y_pred_proba = _trainer.model_weighted.predict_proba(_trainer.X_test)[:, 1]
     calibrator = CalibrationAndThresholdOptimizer(
-        trainer.y_test.values,
+        _trainer.y_test.values,
         y_pred_proba,
-        trainer.model_weighted
+        _trainer.model_weighted
     )
     calibrator.evaluate_calibration()
     calibrator.apply_calibration()
@@ -97,25 +97,25 @@ def calibrate_model(trainer):
     return calibrator
 
 @st.cache_resource
-def create_explainer(trainer):
+def create_explainer(_trainer):
     """Create explainability module."""
     explainer = ClinicalExplainer(
-        trainer.model_weighted,
-        trainer.X_train,
-        trainer.X_test,
-        trainer.y_test,
-        trainer.X_test.columns.tolist()
+        _trainer.model_weighted,
+        _trainer.X_train,
+        _trainer.X_test,
+        _trainer.y_test,
+        _trainer.X_test.columns.tolist()
     )
     return explainer
 
 @st.cache_resource
-def create_simulator(trainer):
+def create_simulator(_trainer):
     """Create simulator module."""
     simulator = ICUSimulator(
-        trainer.model_weighted,
-        trainer.X_test,
-        trainer.y_test,
-        trainer.X_test.columns.tolist(),
+        _trainer.model_weighted,
+        _trainer.X_test,
+        _trainer.y_test,
+        _trainer.X_test.columns.tolist(),
         alert_threshold=0.25
     )
     return simulator
